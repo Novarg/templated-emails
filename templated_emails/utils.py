@@ -34,23 +34,25 @@ def get_email_directories(dir):
 
 def send_templated_email(recipients, template_path, context=None,
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    fail_silently=False, extra_headers=None):
+                    fail_silently=False, extra_headers=None, attachments=None):
     """
         recipients can be either a list of emails or a list of users,
         if it is users the system will change to the language that the
         user has set as theyr mother toungue
+        attachments is list of (filename, content, mime) tuples or MimeBase
+        subclass
     """
     recipient_pks = [r.pk for r in recipients if isinstance(r, User)]
     recipient_emails = [e for e in recipients if not isinstance(e, User)]
     send = _send_task.delay if use_celery else _send
     msgs = send(recipient_pks, recipient_emails, template_path, context, from_email,
-         fail_silently, extra_headers=extra_headers)
+         fail_silently, extra_headers=extra_headers, attachments=attachments)
 
     return msgs
 
 
 def _send(recipient_pks, recipient_emails, template_path, context, from_email,
-          fail_silently, extra_headers=None):
+          fail_silently, extra_headers=None, attachments=None):
     recipients = list(User.objects.filter(pk__in=recipient_pks))
     recipients += recipient_emails
 
@@ -93,6 +95,9 @@ def _send(recipient_pks, recipient_emails, template_path, context, from_email,
 
         msg = EmailMultiAlternatives(subject, text, from_email, [email],
                                      headers=extra_headers)
+        attachments = attachments or []
+        for attach in attachments:
+            msg.attach(*attach)
 
         # try to attach the html variant
         try:
