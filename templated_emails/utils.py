@@ -2,7 +2,7 @@ import logging
 import os
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
-from django.template import Context, TemplateDoesNotExist
+from django.template import TemplateDoesNotExist
 from django.contrib.sites.models import Site
 from django.template.loader import render_to_string
 from django.utils.translation import get_language, activate
@@ -84,7 +84,7 @@ def _send(recipient_pks, recipient_emails, template_path, context, from_email,
             email = recipient
 
         # populate per-recipient context
-        context = Context(default_context)
+        context = default_context.copy()
         context['recipient'] = recipient
         context['email'] = email
 
